@@ -1,0 +1,15 @@
+[project]
+name = "hn-rename-python"
+version = "0.1.0"
+description = "一个极简的使用python写的批量重命名工具"
+readme = "README.md"
+authors = [{ name = "hnchengzong"}]
+requires-python = ">=3.8"
+dependencies = []
+
+[project.scripts]
+hn-rename = "hn_rename_python.__main__:main"
+
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12.0"]
+build-backend = "uv_build"
