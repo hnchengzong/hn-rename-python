@@ -4,8 +4,9 @@
 
 ## 功能
 
-- 目前仅处理指定目录下的直接文件（不递归子目录，不处理隐藏文件）
-- 按文件名自然排序后，依次重命名为 `1.原扩展名`、`2.原扩展名` ……
+- 默认仅处理指定目录下的直接文件（不递归子目录和隐藏文件）
+- 按文件名自然排序后，默认依次重命名为 `1.原扩展名`、`2.原扩展名` ……
+- 使用`-r`来递归查找文件，`-d`以当前日期命名，`-s`以指定字符串命名,需单独使用。
 - 使用 `uv run hn-rename -h`查看帮助
 - 只在Arch Linux上做过测试，不保证其他系统的稳定性。
 
@@ -19,7 +20,7 @@
    ```bash
    git clone https://github.com/hnchengzong/hn-rename-python.git
    cd hn-rename-python
-   uv run hn-rename
+   uv run hn-rename --args
 
 ### AUR
-`paru -S hn_rename_python`
+`paru -S hn-rename-python-bin`

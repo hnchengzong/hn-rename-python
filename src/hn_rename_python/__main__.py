@@ -1,14 +1,19 @@
 import argparse
 import sys
 
+import datetime
 from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser(description="A Python Bitch Rename Tool")
 
-    parser.add_argument("directory",nargs="?",default="." ,help="Choose Directory(default: current directory)")
-    parser.add_argument("-p", "--preview", action="store_true", help="Preview Files")
-    parser.add_argument("-y", "--yes", action="store_true", help="Skip Confirmation")
+    parser.add_argument("directory",nargs="?",default="." ,help="Choose directory(Default: current directory)")
+    parser.add_argument("-p", "--preview", action="store_true", help="Preview files")
+    parser.add_argument("-y", "--yes", action="store_true", help="Skip confirmation")
+    parser.add_argument("-r","-R", "--recursive", action="store_true", help="Rename files in subdirectories")
+    parser.add_argument("-d", "--date",action="store_true", help="Rename files with date")
+    parser.add_argument("-s", "--str", default=None, help="Rename files with string(Need argument)")
+
 
 
     args = parser.parse_args()
@@ -17,47 +22,61 @@ def main():
     if not target_dir.exists():
         print(f"{target_dir} does not exist")
         return 1
-    def get_directory_files(directory:Path) -> list[Path]:
-        return [p for p in directory.iterdir() if p.is_file()]
+    def get_directory_files(directory:Path, recursive:bool = False) -> list[Path]:
+        if recursive:
+            return [p for p in directory.rglob("*") if p.is_file()]
+        else:
+            return [p for p in directory.iterdir() if p.is_file()]
 
-    files = get_directory_files(target_dir)
+    files = get_directory_files(target_dir, args.recursive)
     if not files:
         print("No files found.")
         return
     
+    
+    prefix_list = []
+    if args.date :
+        prefix_list.append(datetime.datetime.now().strftime("%Y%m%d"))
+    if args.str is not None:
+        prefix_list.append(args.str)
+    prefix = "_".join(prefix_list) + "_" if prefix_list else None
     file_rename = []
     for idx, old_path in enumerate(files):
-        new_name = str(idx+1) + old_path.suffix
-        new_path = old_path.with_name(new_name)
-        if new_path.exists():
+        num = str(idx+1)
+        if prefix:
+            new_name = prefix + num + old_path.suffix
+        else:
+            new_name = num + old_path.suffix
+        default_new_path = old_path.with_name(new_name)
+        if default_new_path.exists():
             print(f"Skip {old_path.name} -> {new_name} (because target already exists)")
             continue
-        file_rename.append((old_path, new_path))
+        file_rename.append((old_path, default_new_path))
         
     if not file_rename:
         print("No files to rename.")
         return
     
     if args.preview:
-        for old_path, new_path in file_rename:
-            print(f"{old_path.name} -> {new_path.name}")
+        for old_path, default_new_path in file_rename:
+            print(f"{old_path.name} -> {default_new_path.name}")
         return
     if not args.yes:
         print("The following files will be renamed:")
-        for old_path, new_path in file_rename:
-            print(f"{old_path.name} -> {new_path.name}")
+        for old_path, default_new_path in file_rename:
+            print(f"{old_path.name} -> {default_new_path.name}")
 
         confirm = input("Do you want to proceed? (y/n): ").strip().lower()
         if confirm != 'y':
             print("Operation cancelled.")
             return
         if confirm == 'y':
-            for old_path, new_path in file_rename:
+            for old_path, default_new_path in file_rename:
                 try:
-                    old_path.rename(new_path)
-                    print(f"Renamed {old_path.name} -> {new_path.name} successfully.")
+                    old_path.rename(default_new_path)
+                    print(f"Renamed {old_path.name} -> {default_new_path.name} successfully.")
                 except Exception as exception:
-                    print(f"Failed to rename {old_path.name} -> {new_path.name}: {exception}")
+                    print(f"Failed to rename {old_path.name} -> {default_new_path.name}: {exception}")
 
 
 
