@@ -1,6 +1,6 @@
 [project]
 name = "hn-rename-python"
-version = "0.1.1"
+version = "0.1.2"
 description = "一个极简的使用python写的批量重命名工具"
 readme = "README.md"
 authors = [{ name = "hnchengzong" }]
