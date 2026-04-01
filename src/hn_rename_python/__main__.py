@@ -1,40 +1,63 @@
 import argparse
 import sys
 import datetime
+import random
 from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser(description="A Python Bitch Rename Tool")
-
     parser.add_argument("directory",nargs="?",default="." ,help="Choose directory(Default: current directory)")
     parser.add_argument("-p", "--preview", action="store_true", help="Preview files")
     parser.add_argument("-y", "--yes", action="store_true", help="Skip confirmation")
     parser.add_argument("-r","-R", "--recursive", action="store_true", help="Rename files in subdirectories")
-    parser.add_argument("-d", "--date",action="store_true", help="Rename files with date")
+    parser.add_argument("-t", "--time",action="store_true", help="Rename files with date")
     parser.add_argument("-s", "--str", default=None, help="Rename files with string(Need argument)")
+    parser.add_argument("-d", "--dir", action="store_true", help="Rename directories")
+    parser.add_argument("-v", "--version", action="version", version="%(prog)s-python 0.1.2")
+    parser.add_argument("--sort",default="name",choices=["name","size","mtime","ctime","owner","suffix","group","random"], help="Sort order:name(default),size,mtime,ctime,owner,suffix,group,random")
 
 
 
     args = parser.parse_args()
     target_dir = Path(args.directory).expanduser().resolve()
-
     if not target_dir.exists():
         print(f"{target_dir} does not exist")
         return 1
-    def get_directory_files(directory:Path, recursive:bool = False) -> list[Path]:
-        if recursive:
-            return [p for p in directory.rglob("*") if p.is_file()]
-        else:
-            return [p for p in directory.iterdir() if p.is_file()]
+    def get_directory_files(directory:Path, recursive:bool = False,dir:bool = False) -> list[Path]:
+        match (recursive, dir):
+            case (True, True):
+                return [p for p in directory.rglob("*") if p.is_dir()]
+            case (True, False):
+                return [p for p in directory.rglob("*") if p.is_file()]
+            case (False, True):
+                return [p for p in directory.iterdir() if p.is_dir()]
+            case (False, False):
+                return [p for p in directory.iterdir() if p.is_file()]
 
-    files = get_directory_files(target_dir, args.recursive)
+    files = get_directory_files(target_dir, args.recursive,args.dir)
     if not files:
         print("No files found.")
         return
-    
-    
+    match args.sort:
+        case "name":
+            files.sort(key=lambda p: p.name)
+        case "size":
+            files.sort(key=lambda p: p.stat().st_size)
+        case "mtime":
+            files.sort(key=lambda p: p.stat().st_mtime)
+        case "ctime":
+            files.sort(key=lambda p: p.stat().st_ctime)
+        case "owner":
+            files.sort(key=lambda p: p.stat().st_uid)
+        case "suffix":
+            files.sort(key=lambda p: p.suffix)
+        case "group":
+            files.sort(key=lambda p: p.stat().st_gid)
+        case "random":
+            random.shuffle(files)
+
     prefix_list = []
-    if args.date :
+    if args.time:
         prefix_list.append(datetime.datetime.now().strftime("%Y%m%d"))
     if args.str is not None:
         prefix_list.append(args.str)
@@ -51,11 +74,11 @@ def main():
             print(f"Skip {old_path.name} -> {new_name} (because target already exists)")
             continue
         file_rename.append((old_path, default_new_path))
-        
+
     if not file_rename:
         print("No files to rename.")
         return
-    
+
     if args.preview:
         for old_path, default_new_path in file_rename:
             print(f"{old_path.name} -> {default_new_path.name}")
@@ -69,7 +92,7 @@ def main():
         if confirm != 'y':
             print("Operation cancelled.")
             return
-        if confirm == 'y':
+        else:
             for old_path, default_new_path in file_rename:
                 try:
                     old_path.rename(default_new_path)
