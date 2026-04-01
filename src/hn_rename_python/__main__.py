@@ -3,6 +3,7 @@ import sys
 import datetime
 import random
 from pathlib import Path
+from natsort import natsorted
 
 def main():
     parser = argparse.ArgumentParser(description="A Python Bitch Rename Tool")
@@ -13,8 +14,8 @@ def main():
     parser.add_argument("-t", "--time",action="store_true", help="Rename files with date")
     parser.add_argument("-s", "--str", default=None, help="Rename files with string(Need argument)")
     parser.add_argument("-d", "--dir", action="store_true", help="Rename directories")
-    parser.add_argument("-v", "--version", action="version", version="%(prog)s-python 0.1.2")
-    parser.add_argument("--sort",default="name",choices=["name","size","mtime","ctime","owner","suffix","group","random"], help="Sort order:name(default),size,mtime,ctime,owner,suffix,group,random")
+    parser.add_argument("-v", "--version", action="version", version="%(prog)s-python 0.1.3")
+    parser.add_argument("--sort",default="natural",choices=["natural","name","size","mtime","ctime","owner","suffix","group","random"], help="Sort order:natural(default),name,size,mtime,ctime,owner,suffix,group,random")
 
 
 
@@ -39,6 +40,8 @@ def main():
         print("No files found.")
         return
     match args.sort:
+        case "natural":
+            files = natsorted(files, key=lambda p: p.name)
         case "name":
             files.sort(key=lambda p: p.name)
         case "size":
