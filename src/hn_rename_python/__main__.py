@@ -6,7 +6,7 @@ from pathlib import Path
 from natsort import natsorted
 
 def main():
-    parser = argparse.ArgumentParser(description="A Python Bitch Rename Tool")
+    parser = argparse.ArgumentParser(description="A Python Batch Rename Tool")
     parser.add_argument("directory",nargs="?",default="." ,help="Choose directory(Default: current directory)")
     parser.add_argument("-p", "--preview", action="store_true", help="Preview files")
     parser.add_argument("-y", "--yes", action="store_true", help="Skip confirmation")
@@ -38,7 +38,7 @@ def main():
     files = get_directory_files(target_dir, args.recursive,args.dir)
     if not files:
         print("No files found.")
-        return
+        return 1
     match args.sort:
         case "natural":
             files = natsorted(files, key=lambda p: p.name)
@@ -51,11 +51,19 @@ def main():
         case "ctime":
             files.sort(key=lambda p: p.stat().st_ctime)
         case "owner":
-            files.sort(key=lambda p: p.stat().st_uid)
+            try:
+                files.sort(key=lambda p: p.stat().st_uid)
+            except (AttributeError, NotImplementedError, KeyError, OSError):
+                print("Sorting by owner is not supported on this platform. Sorting by name instead.")
+                files.sort(key=lambda p: p.name)
         case "suffix":
             files.sort(key=lambda p: p.suffix)
         case "group":
-            files.sort(key=lambda p: p.stat().st_gid)
+            try:
+                files.sort(key=lambda p: p.stat().st_gid)
+            except (AttributeError, NotImplementedError, KeyError, OSError):
+                print("Sorting by group is not supported on this platform. Sorting by name instead.")
+                files.sort(key=lambda p: p.name)
         case "random":
             random.shuffle(files)
 
@@ -100,6 +108,12 @@ def main():
                 try:
                     old_path.rename(default_new_path)
                     print(f"Renamed {old_path.name} -> {default_new_path.name} successfully.")
+                except OSError as e:
+                    try:
+                        old_path.replace(default_new_path)
+                        print(f"Renamed {old_path.name} -> {default_new_path.name} successfully (used replace due to cross-filesystem move).")
+                    except Exception as inner_exception:
+                        print(f"Failed to rename {old_path.name} -> {default_new_path.name}: {inner_exception}")
                 except Exception as exception:
                     print(f"Failed to rename {old_path.name} -> {default_new_path.name}: {exception}")
 
