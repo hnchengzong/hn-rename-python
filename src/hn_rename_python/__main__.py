@@ -72,7 +72,7 @@ def main():
         prefix_list.append(datetime.datetime.now().strftime("%Y%m%d"))
     if args.str is not None:
         prefix_list.append(args.str)
-    prefix = "_".join(prefix_list) + "_" if prefix_list else None
+    prefix = "_".join(prefix_list) + "_" if prefix_list else ""
     file_rename = []
     for idx, old_path in enumerate(files):
         num = str(idx+1)
@@ -103,18 +103,18 @@ def main():
         if confirm != 'y':
             print("Operation cancelled.")
             return
-        else:
-            for old_path, default_new_path in file_rename:
-                try:
-                    old_path.rename(default_new_path)
-                    print(f"Renamed {old_path.name} -> {default_new_path.name} successfully.")
-                except OSError as e:
-                    try:
-                        old_path.replace(default_new_path)
-                        print(f"Renamed {old_path.name} -> {default_new_path.name} successfully (used replace due to cross-filesystem move).")
-                    except Exception as inner_exception:
-                        print(f"Failed to rename {old_path.name} -> {default_new_path.name}: {inner_exception}")
-                except Exception as exception:
+
+    for old_path, default_new_path in file_rename:
+        try:
+                old_path.rename(default_new_path)
+                print(f"Renamed {old_path.name} -> {default_new_path.name} successfully.")
+        except OSError as e:
+            try:
+                    old_path.replace(default_new_path)
+                    print(f"Renamed {old_path.name} -> {default_new_path.name} successfully (used replace due to cross-filesystem move).")
+            except Exception as inner_exception:
+                    print(f"Failed to rename {old_path.name} -> {default_new_path.name}: {inner_exception}")
+        except Exception as exception:
                     print(f"Failed to rename {old_path.name} -> {default_new_path.name}: {exception}")
 
 
