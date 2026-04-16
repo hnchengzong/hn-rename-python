@@ -1,5 +1,9 @@
 # hn-rename-python
 
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+
+![uv](https://img.shields.io/badge/uv-1E88E5?logo=python&logoColor=white)
+
 一个极简的使用python写的批量重命名工具,供我自己使用。
 
 ## 功能
@@ -20,9 +24,11 @@
 2. 克隆仓库：
 
    ```bash
-   git clone https://github.com/hnchengzong/hn-rename-python.git
+
+   git clone --depth 1 https://github.com/hnchengzong/hn-rename-python.git
    cd hn-rename-python
    uv run hn-rename --args
+
    ```
 
 ### AUR
