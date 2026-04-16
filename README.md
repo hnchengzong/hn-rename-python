@@ -1,8 +1,8 @@
 # hn-rename-python
 
 ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
-
 ![uv](https://img.shields.io/badge/uv-1E88E5?logo=python&logoColor=white)
+![Arch Linux](https://img.shields.io/badge/Arch_Linux-1793D1?logo=archlinux&logoColor=white)
 
 一个极简的使用python写的批量重命名工具,供我自己使用。
 
@@ -23,13 +23,13 @@
 1. 确保已安装`Python 3.10+`和`uv`
 2. 克隆仓库：
 
-   ```bash
+```bash
 
    git clone --depth 1 https://github.com/hnchengzong/hn-rename-python.git
    cd hn-rename-python
    uv run hn-rename --args
 
-   ```
+```
 
 ### AUR
 
