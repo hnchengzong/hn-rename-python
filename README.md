@@ -3,6 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
 ![uv](https://img.shields.io/badge/uv-1E88E5?logo=python&logoColor=white)
 ![Arch Linux](https://img.shields.io/badge/Arch_Linux-1793D1?logo=archlinux&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 一个极简的使用python写的批量重命名工具,供我自己使用。
 
