@@ -1,123 +1,136 @@
+#!/usr/bin/env python3
 import argparse
-import sys
-import datetime
 import random
+import sys
+from datetime import datetime
 from pathlib import Path
+
 from natsort import natsorted
 
-def main():
-    parser = argparse.ArgumentParser(description="A Python Batch Rename Tool")
-    parser.add_argument("directory",nargs="?",default="." ,help="Choose directory(Default: current directory)")
-    parser.add_argument("-p", "--preview", action="store_true", help="Preview files")
-    parser.add_argument("-y", "--yes", action="store_true", help="Skip confirmation")
-    parser.add_argument("-r","-R", "--recursive", action="store_true", help="Rename files in subdirectories")
-    parser.add_argument("-t", "--time",action="store_true", help="Rename files with date")
-    parser.add_argument("-s", "--str", default=None, help="Rename files with string(Need argument)")
-    parser.add_argument("-d", "--dir", action="store_true", help="Rename directories")
-    parser.add_argument("-v", "--version", action="version", version="%(prog)s-python 0.1.3")
-    parser.add_argument("--sort",default="natural",choices=["natural","name","size","mtime","ctime","owner","suffix","group","random"], help="Sort order:natural(default),name,size,mtime,ctime,owner,suffix,group,random")
+SORT_TABLE = {
+    "natural": lambda f: natsorted(f, key=lambda p: p.name),
+    "name": lambda f: sorted(f, key=lambda p: p.name),
+    "size": lambda f: sorted(f, key=lambda p: p.stat().st_size),
+    "mtime": lambda f: sorted(f, key=lambda p: p.stat().st_mtime),
+    "ctime": lambda f: sorted(f, key=lambda p: p.stat().st_ctime),
+    "owner": lambda f: sorted(f, key=lambda p: p.stat().st_uid),
+    "group": lambda f: sorted(f, key=lambda p: p.stat().st_gid),
+    "suffix": lambda f: sorted(f, key=lambda p: p.suffix.lower()),
+    "random": lambda f: random.sample(f, len(f)),
+}
 
+SORT_CHOICES = list(SORT_TABLE.keys())
 
+def parse_args():
+    p = argparse.ArgumentParser()
+    p.add_argument("directory", nargs="?", default=".")
+    p.add_argument("-p", "--preview", action="store_true")
+    p.add_argument("-y", "--yes", action="store_true")
+    p.add_argument("-r", "--recursive", action="store_true")
+    p.add_argument("-t", "--time", action="store_true")
+    p.add_argument("-s", "--str", type=str)
+    p.add_argument("-d", "--dir", action="store_true")
+    p.add_argument("-v", "--version", action="version", version="hn-rename v0.2.0")
+    p.add_argument("--sort", default="natural", choices=SORT_CHOICES)
+    return p.parse_args()
 
-    args = parser.parse_args()
-    target_dir = Path(args.directory).expanduser().resolve()
-    if not target_dir.exists():
-        print(f"{target_dir} does not exist")
-        return 1
-    def get_directory_files(directory:Path, recursive:bool = False,dir:bool = False) -> list[Path]:
-        match (recursive, dir):
-            case (True, True):
-                return [p for p in directory.rglob("*") if p.is_dir()]
-            case (True, False):
-                return [p for p in directory.rglob("*") if p.is_file()]
-            case (False, True):
-                return [p for p in directory.iterdir() if p.is_dir()]
-            case (False, False):
-                return [p for p in directory.iterdir() if p.is_file()]
+def valid_dir(path):
+    d = Path(path).expanduser().resolve()
+    if not d.is_dir():
+        print(f"Error: Directory not found - {d}")
+        sys.exit(1)
+    return d
 
-    files = get_directory_files(target_dir, args.recursive,args.dir)
-    if not files:
-        print("No files found.")
-        return 1
-    match args.sort:
-        case "natural":
-            files = natsorted(files, key=lambda p: p.name)
-        case "name":
-            files.sort(key=lambda p: p.name)
-        case "size":
-            files.sort(key=lambda p: p.stat().st_size)
-        case "mtime":
-            files.sort(key=lambda p: p.stat().st_mtime)
-        case "ctime":
-            files.sort(key=lambda p: p.stat().st_ctime)
-        case "owner":
-            try:
-                files.sort(key=lambda p: p.stat().st_uid)
-            except (AttributeError, NotImplementedError, KeyError, OSError):
-                print("Sorting by owner is not supported on this platform. Sorting by name instead.")
-                files.sort(key=lambda p: p.name)
-        case "suffix":
-            files.sort(key=lambda p: p.suffix)
-        case "group":
-            try:
-                files.sort(key=lambda p: p.stat().st_gid)
-            except (AttributeError, NotImplementedError, KeyError, OSError):
-                print("Sorting by group is not supported on this platform. Sorting by name instead.")
-                files.sort(key=lambda p: p.name)
-        case "random":
-            random.shuffle(files)
-
-    prefix_list = []
-    if args.time:
-        prefix_list.append(datetime.datetime.now().strftime("%Y%m%d"))
-    if args.str is not None:
-        prefix_list.append(args.str)
-    prefix = "_".join(prefix_list) + "_" if prefix_list else ""
-    file_rename = []
-    for idx, old_path in enumerate(files):
-        num = str(idx+1)
-        if prefix:
-            new_name = prefix + num + old_path.suffix
-        else:
-            new_name = num + old_path.suffix
-        default_new_path = old_path.with_name(new_name)
-        if default_new_path.exists():
-            print(f"Skip {old_path.name} -> {new_name} (because target already exists)")
+def list_items(root, recursive, dir_only):
+    items = []
+    walker = root.rglob("*") if recursive else root.iterdir()
+    for item in walker:
+        if item.name.startswith("."):
             continue
-        file_rename.append((old_path, default_new_path))
+        if dir_only and item.is_dir():
+            items.append(item)
+        if not dir_only and item.is_file():
+            items.append(item)
+    return items
 
-    if not file_rename:
-        print("No files to rename.")
-        return
+def sort_items(items, mode):
+    return SORT_TABLE[mode](items)
+
+def make_prefix(args):
+    parts = []
+    if args.time:
+        parts.append(datetime.now().strftime("%Y%m%d"))
+    if args.str and args.str.strip():
+        parts.append(args.str.strip())
+    return "_".join(parts) + "_" if parts else ""
+
+def rename_plan(items, prefix):
+    tasks = []
+    used = set()
+    for idx, item in enumerate(items, 1):
+        num = str(idx)
+        suffix = item.suffix if item.is_file() else ""
+        new_name = f"{prefix}{num}{suffix}"
+        new_path = item.parent / new_name
+        if new_path.exists() or new_name in used:
+            print(f"Skipped: {item.name} -> {new_name}")
+            continue
+        tasks.append((item, new_path))
+        used.add(new_name)
+    return tasks
+
+def show(tasks, preview):
+    t = "Preview" if preview else "Pending"
+    print(f"\n===== {t} =====")
+    for o, n in tasks:
+        print(f"{o.name} -> {n.name}")
+
+def confirm():
+    while True:
+        c = input("\nProceed? [y/n] ").strip().lower()
+        if c == "y":
+            return True
+        if c == "n":
+            return False
+
+def rename(o, n):
+    o.rename(n)
+    print(f"Success: {o.name} -> {n.name}")
+
+def main():
+    args = parse_args()
+    if args.recursive and args.dir:
+        print("Error: --recursive + --dir not allowed")
+        sys.exit(1)
+
+    root = valid_dir(args.directory)
+    items = list_items(root, args.recursive, args.dir)
+    if not items:
+        print("No items to rename")
+        sys.exit(0)
+
+    items = sort_items(items, args.sort)
+    prefix = make_prefix(args)
+    tasks = rename_plan(items, prefix)
+    if not tasks:
+        print("No items to rename")
+        sys.exit(0)
 
     if args.preview:
-        for old_path, default_new_path in file_rename:
-            print(f"{old_path.name} -> {default_new_path.name}")
+        show(tasks, True)
         return
+
     if not args.yes:
-        print("The following files will be renamed:")
-        for old_path, default_new_path in file_rename:
-            print(f"{old_path.name} -> {default_new_path.name}")
+        show(tasks, False)
+        if not confirm():
+            print("Cancelled")
+            sys.exit(0)
 
-        confirm = input("Do you want to proceed? (y/n): ").strip().lower()
-        if confirm != 'y':
-            print("Operation cancelled.")
-            return
-
-    for old_path, default_new_path in file_rename:
-        try:
-                old_path.rename(default_new_path)
-                print(f"Renamed {old_path.name} -> {default_new_path.name} successfully.")
-        except OSError as e:
-            try:
-                    old_path.replace(default_new_path)
-                    print(f"Renamed {old_path.name} -> {default_new_path.name} successfully (used replace due to cross-filesystem move).")
-            except Exception as inner_exception:
-                    print(f"Failed to rename {old_path.name} -> {default_new_path.name}: {inner_exception}")
-        except Exception as exception:
-                    print(f"Failed to rename {old_path.name} -> {default_new_path.name}: {exception}")
-
-
+    count = 0
+    for o, n in tasks:
+        rename(o, n)
+        count += 1
+    print(f"\nDone: {count}/{len(tasks)}")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
