@@ -4,6 +4,7 @@ import random
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Iterator
 
 from natsort import natsorted
 
@@ -34,16 +35,16 @@ def parse_args():
     p.add_argument("--sort", default="natural", choices=SORT_CHOICES)
     return p.parse_args()
 
-def valid_dir(path):
-    d = Path(path).expanduser().resolve()
-    if not d.is_dir():
-        print(f"Error: Directory not found - {d}")
+def valid_dir(path : Path):
+    absolute_dir = Path(path).expanduser().resolve()
+    if not absolute_dir.is_dir():
+        print(f"Error: Directory not found - {absolute_dir}")
         sys.exit(1)
-    return d
+    return absolute_dir
 
-def list_items(root, recursive, dir_only):
-    items = []
-    walker = root.rglob("*") if recursive else root.iterdir()
+def list_items(root : Path, recursive : bool, dir_only : bool):
+    items: list[Path] = []
+    walker:Iterator[Path] = root.rglob("*") if recursive else root.iterdir()
     for item in walker:
         if item.name.startswith("."):
             continue
@@ -53,25 +54,25 @@ def list_items(root, recursive, dir_only):
             items.append(item)
     return items
 
-def sort_items(items, mode):
+def sort_items(items:list[Path], mode:str):
     return SORT_TABLE[mode](items)
 
-def make_prefix(args):
-    parts = []
+def make_prefix(args:argparse.Namespace):
+    parts:list[str] = []
     if args.time:
         parts.append(datetime.now().strftime("%Y%m%d"))
     if args.str and args.str.strip():
         parts.append(args.str.strip())
     return "_".join(parts) + "_" if parts else ""
 
-def rename_plan(items, prefix):
-    tasks = []
+def rename_plan(items:list[Path], prefix:str):
+    tasks:list[tuple[Path, Path]] = []
     used = set()
     for idx, item in enumerate(items, 1):
-        num = str(idx)
-        suffix = item.suffix if item.is_file() else ""
-        new_name = f"{prefix}{num}{suffix}"
-        new_path = item.parent / new_name
+        num:str = str(idx)
+        suffix:str = item.suffix if item.is_file() else ""
+        new_name:str = f"{prefix}{num}{suffix}"
+        new_path:Path = item.parent / new_name
         if new_path.exists() or new_name in used:
             print(f"Skipped: {item.name} -> {new_name}")
             continue
@@ -79,23 +80,23 @@ def rename_plan(items, prefix):
         used.add(new_name)
     return tasks
 
-def show(tasks, preview):
-    t = "Preview" if preview else "Pending"
-    print(f"\n===== {t} =====")
-    for o, n in tasks:
-        print(f"{o.name} -> {n.name}")
+def show(all_tasks, preview):
+    show_title = "Preview" if preview else "Pending"
+    print(f"\n===== {show_title} =====")
+    for src, dest in all_tasks:
+        print(f"{src.name} -> {dest.name}")
 
 def confirm():
     while True:
-        c = input("\nProceed? [y/n] ").strip().lower()
-        if c == "y":
+        confirm:str = input("\nProceed? [y/n] ").strip().lower()
+        if confirm == "y":
             return True
-        if c == "n":
+        if confirm == "n":
             return False
 
-def rename(o, n):
-    o.rename(n)
-    print(f"Success: {o.name} -> {n.name}")
+def rename(src, dest):
+    src.rename(dest)
+    print(f"Success: {src.name} -> {dest.name}")
 
 def main():
     args = parse_args()
@@ -109,7 +110,7 @@ def main():
         print("No items to rename")
         sys.exit(0)
 
-    items = sort_items(items, args.sort)
+    items:list[Path] = sort_items(items, args.sort)
     prefix = make_prefix(args)
     tasks = rename_plan(items, prefix)
     if not tasks:
@@ -127,8 +128,8 @@ def main():
             sys.exit(0)
 
     count = 0
-    for o, n in tasks:
-        rename(o, n)
+    for src, dest in tasks:
+        rename(src, dest)
         count += 1
     print(f"\nDone: {count}/{len(tasks)}")
 
