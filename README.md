@@ -1,5 +1,7 @@
 # hn-rename-python
 
+[English](README_EN.md) | [中文](README.md)
+
 ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
 ![uv](https://img.shields.io/badge/uv-1E88E5?logo=python&logoColor=white)
 ![Arch Linux](https://img.shields.io/badge/Arch_Linux-1793D1?logo=archlinux&logoColor=white)
