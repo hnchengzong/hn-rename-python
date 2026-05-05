@@ -10,7 +10,7 @@ def show(all_tasks: List[Tuple[Path, Path]], preview: bool):
 def confirm() -> bool:
     while True:
         confirm: str = input("\nProceed? [y/n] ").strip().lower()
-        if confirm == "y":
+        if confirm in ("y", "yes"):
             return True
-        if confirm == "n":
+        if confirm in ("n", "no", ""):
             return False
