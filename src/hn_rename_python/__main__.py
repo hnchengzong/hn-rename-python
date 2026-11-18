@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 from .args import parse_args, valid_dir
-from .file_ops import list_items, sort_items, make_prefix, rename_plan, rename
+from .file_ops import list_items, sort_items, make_prefix, rename_plan, rename_all, is_pure_permutation
 from .ui import show, confirm
 
 def main():
@@ -20,7 +20,11 @@ def main():
     prefix = make_prefix(args)
     tasks = rename_plan(items, prefix)
     if not tasks:
-        print("No items to rename")
+        print("Already numbered, nothing to do")
+        sys.exit(0)
+
+    if args.sort in ("name", "ctime") and is_pure_permutation(items, tasks):
+        print(f"Already numbered, skipping --sort={args.sort} (it would only permute existing numbers)")
         sys.exit(0)
 
     if args.preview:
@@ -33,10 +37,7 @@ def main():
             print("Cancelled")
             sys.exit(0)
 
-    count = 0
-    for src, dest in tasks:
-        rename(src, dest)
-        count += 1
+    count = rename_all(tasks)
     print(f"\nDone: {count}/{len(tasks)}")
 
 if __name__ == "__main__":
